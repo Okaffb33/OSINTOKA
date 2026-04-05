@@ -3,106 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lyra Data Leak Checker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Bot Cek Kebocoran Data</title>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+        .container {
+            max-width: 550px;
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 1.8rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        h1 {
+            font-size: 1.6rem;
+            background: linear-gradient(90deg, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.3rem;
+        }
+        .sub {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin-bottom: 1.5rem;
+            border-left: 3px solid #8b5cf6;
+            padding-left: 0.7rem;
+        }
+        .warning {
+            background: #7f1d1d80;
+            border-left: 4px solid #ef4444;
+            padding: 0.7rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            color: #fecaca;
+            margin-bottom: 1.2rem;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 1rem;
+            color: #f1f5f9;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        input:focus, textarea:focus {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 2px #8b5cf633;
+        }
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            margin-top: 0.5rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn-primary {
+            background: linear-gradient(95deg, #3b82f6, #8b5cf6);
+            color: white;
+            box-shadow: 0 4px 12px #3b82f640;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+        }
+        .btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+            margin-top: 0.8rem;
+        }
+        .btn-secondary:hover {
+            background: #475569;
+        }
+        .result-box {
+            background: #0f172a;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-top: 1.2rem;
+            border: 1px solid #334155;
+            max-height: 250px;
+            overflow: auto;
+        }
+        .result-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+        pre {
+            color: #bbf0d0;
+            font-family: monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .status {
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 0.8rem;
+            color: #94a3b8;
+        }
+        hr {
+            border-color: #334155;
+            margin: 1rem 0;
+        }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body>
+<div class="container">
+    <h1>🔍 Leak Checker Bot</h1>
+    <div class="sub">Cek data bocor → Kirim hasil ke Telegram</div>
 
-    <div class="max-w-2xl w-full glass rounded-2xl p-8 shadow-2xl">
-        <h1 class="text-3xl font-bold mb-2 text-blue-400">Lyra Leak Checker</h1>
-        <p class="text-gray-400 mb-6">Masukkan data untuk memeriksa kebocoran dan mengirim laporan ke Telegram.</p>
-
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium mb-1">Query Pencarian (Nama/Email/No HP)</label>
-                <input type="text" id="searchInput" placeholder="Contoh: Arya Sinulingga" 
-                       class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition">
-            </div>
-
-            <button onclick="processCheck()" id="btnAction"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition transform active:scale-95 shadow-lg">
-                Periksa & Kirim ke Telegram
-            </button>
-        </div>
-
-        <div id="status" class="mt-6 hidden p-4 rounded-lg text-sm"></div>
-        
-        <div id="resultArea" class="mt-4 hidden">
-            <h2 class="text-lg font-semibold mb-2">Hasil Preview:</h2>
-            <div id="jsonPreview" class="bg-black p-4 rounded-lg text-xs overflow-auto max-h-64 text-green-400 font-mono"></div>
-        </div>
+    <div class="warning">
+        ⚠️ TOKEN & API KEY TEREKSPOSE DI HALAMAN INI.<br>
+        Jangan bagikan file ini ke siapa pun. Segera revoke token di @BotFather setelah selesai.
     </div>
 
-    <script>
-        const CONFIG = {
-            API_KEY: 'c5f8ba57-3613-48b7-9b46-d6ef2ee21629',
-            TG_TOKEN: '7529338395:AAEqq_w4gc065JYKGwJw_aCkE086YAG2Rts',
-            TG_CHAT_ID: '7615971800'
-        };
+    <!-- Konfigurasi (sudah diisi dengan data Anda) -->
+    <div class="input-group">
+        <label>🤖 Bot Token Telegram</label>
+        <input type="text" id="botToken" value="7529338395:AAEqq_w4gc065JYKGwJw_aCkE086YAG2Rts" readonly>
+    </div>
+    <div class="input-group">
+        <label>📨 Chat ID Telegram</label>
+        <input type="text" id="chatId" value="7615971800" placeholder="Chat ID">
+    </div>
+    <div class="input-group">
+        <label>🔑 API Key (rfpdev.me)</label>
+        <input type="text" id="apiKey" value="c5f8ba57-3613-48b7-9b46-d6ef2ee21629" readonly>
+    </div>
+    <div class="input-group">
+        <label>🔎 Nama / Kata Kunci</label>
+        <input type="text" id="searchInput" placeholder="Contoh: arya sinulingga" value="arya sinulingga">
+    </div>
 
-        async function processCheck() {
-            const query = document.getElementById('searchInput').value;
-            const statusDiv = document.getElementById('status');
-            const resultArea = document.getElementById('resultArea');
-            const jsonPreview = document.getElementById('jsonPreview');
-            const btn = document.getElementById('btnAction');
+    <button id="checkBtn" class="btn-primary">✅ 1. CEK DATA LANGSUNG</button>
+    <button id="sendToTelegramBtn" class="btn-secondary">📤 2. KIRIM HASIL KE TELEGRAM</button>
 
-            if (!query) return alert("Harap masukkan kata kunci!");
+    <div id="resultArea" style="display: none;" class="result-box">
+        <div class="result-title">📋 HASIL DARI API</div>
+        <pre id="responsePre">-</pre>
+    </div>
+    <div id="statusMsg" class="status"></div>
+</div>
 
-            // Reset UI
-            statusDiv.className = "mt-6 p-4 rounded-lg text-sm bg-blue-900/50 text-blue-200 block";
-            statusDiv.innerText = "🔍 Sedang memeriksa API...";
-            btn.disabled = true;
-            btn.innerText = "Memproses...";
+<script>
+    // Ambil elemen
+    const botToken = document.getElementById('botToken');
+    const chatId = document.getElementById('chatId');
+    const apiKey = document.getElementById('apiKey');
+    const searchInput = document.getElementById('searchInput');
+    const checkBtn = document.getElementById('checkBtn');
+    const sendBtn = document.getElementById('sendToTelegramBtn');
+    const resultArea = document.getElementById('resultArea');
+    const responsePre = document.getElementById('responsePre');
+    const statusMsg = document.getElementById('statusMsg');
 
-            try {
-                // 1. Fetch Data dari RFPDEV API
-                const apiUrl = `https://rfpdev.me/api/check-leaks?api_key=${CONFIG.API_KEY}&search=${encodeURIComponent(query)}`;
-                const response = await fetch(apiUrl);
-                const data = await response.json();
+    let lastResult = null;
+    let lastSearch = '';
 
-                // Tampilkan di UI
-                resultArea.classList.remove('hidden');
-                jsonPreview.innerText = JSON.stringify(data, null, 2);
+    // Fungsi tampilkan pesan status
+    function setStatus(msg, isError = false) {
+        statusMsg.innerHTML = msg;
+        statusMsg.style.color = isError ? '#f87171' : '#94a3b8';
+        setTimeout(() => {
+            if (statusMsg.innerHTML === msg) statusMsg.innerHTML = '';
+        }, 4000);
+    }
 
-                // 2. Format Pesan untuk Telegram
-                const message = `🚨 *HASIL CEK KEBOCORAN DATA* 🚨\n\n` +
-                                `🔎 *Query:* ${query}\n` +
-                                `📊 *Status:* ${data.status || 'Selesai'}\n` +
-                                `📂 *Data ditemukan:* ${Array.isArray(data.result) ? data.result.length : 'Lihat Detail'}\n\n` +
-                                `_Data dikirim melalui Lyra Dashboard._`;
-
-                // 3. Kirim ke Telegram
-                const tgUrl = `https://api.telegram.org/bot${CONFIG.TG_TOKEN}/sendMessage`;
-                const tgRes = await fetch(tgUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: CONFIG.TG_CHAT_ID,
-                        text: message,
-                        parse_mode: 'Markdown'
-                    })
-                });
-
-                if (tgRes.ok) {
-                    statusDiv.className = "mt-6 p-4 rounded-lg text-sm bg-green-900/50 text-green-200 block";
-                    statusDiv.innerText = "✅ Berhasil! Data telah dikirim ke Telegram Anda.";
-                } else {
-                    throw new Error("Gagal mengirim ke Telegram.");
-                }
-
-            } catch (error) {
-                statusDiv.className = "mt-6 p-4 rounded-lg text-sm bg-red-900/50 text-red-200 block";
-                statusDiv.innerText = "❌ Error: " + error.message;
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Periksa & Kirim ke Telegram";
-            }
+    // Fungsi panggil API cek kebocoran
+    async function checkLeaks(searchTerm) {
+        if (!searchTerm.trim()) {
+            setStatus('❌ Masukkan nama yang ingin dicari!', true);
+            return null;
         }
-    </script>
+        const url = `https://rfpdev.me/api/check-leaks?api_key=${apiKey.value.trim()}&search=${encodeURIComponent(searchTerm)}`;
+        setStatus('🔄 Sedang mengecek data...');
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            lastResult = data;
+            lastSearch = searchTerm;
+            // Tampilkan hasil
+            responsePre.textContent = JSON.stringify(data, null, 2);
+            resultArea.style.display = 'block';
+            setStatus('✅ Pengecekan selesai!');
+            return data;
+        } catch (error) {
+            console.error(error);
+            responsePre.textContent = `Error: ${error.message}\n\nKemungkinan API tidak mendukung CORS atau server sedang sibuk.`;
+            resultArea.style.display = 'block';
+            setStatus(`❌ Gagal: ${error.message}`, true);
+            return null;
+        }
+    }
+
+    // Fungsi kirim pesan ke Telegram
+    async function sendToTelegram(messageText) {
+        const token = botToken.value.trim();
+        const chat = chatId.value.trim();
+        if (!token || !chat) {
+            setStatus('❌ Bot token atau Chat ID kosong!', true);
+            return false;
+        }
+        const url = `https://api.telegram.org/bot${token}/sendMessage`;
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chat,
+                    text: messageText,
+                    parse_mode: 'HTML'
+                })
+            });
+            const json = await resp.json();
+            if (json.ok) {
+                setStatus('✨ Berhasil dikirim ke Telegram!');
+                return true;
+            } else {
+                setStatus(`❌ Telegram error: ${json.description}`, true);
+                return false;
+            }
+        } catch (err) {
+            setStatus(`❌ Gagal kirim: ${err.message}`, true);
+            return false;
+        }
+    }
+
+    // Format hasil untuk dikirim ke Telegram
+    function formatForTelegram(searchTerm, data) {
+        const timestamp = new Date().toLocaleString('id-ID');
+        let body = JSON.stringify(data, null, 2);
+        if (body.length > 3800) body = body.substring(0, 3700) + '\n... (dipotong)';
+        return `<b>🔍 HASIL CEK KEBOCORAN</b>\n📌 Pencarian: <code>${escapeHtml(searchTerm)}</code>\n⏰ Waktu: ${timestamp}\n━━━━━━━━━━━━━━━━\n<pre>${escapeHtml(body)}</pre>`;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Event: Tombol Cek
+    checkBtn.addEventListener('click', async () => {
+        const keyword = searchInput.value.trim();
+        if (!keyword) {
+            setStatus('Isi nama/kata kunci dulu!', true);
+            return;
+        }
+        await checkLeaks(keyword);
+    });
+
+    // Event: Kirim hasil terakhir ke Telegram
+    sendBtn.addEventListener('click', async () => {
+        if (!lastResult) {
+            setStatus('Belum ada hasil pengecekan. Klik "CEK DATA LANGSUNG" dulu!', true);
+            return;
+        }
+        const keyword = searchInput.value.trim() || lastSearch;
+        const message = formatForTelegram(keyword, lastResult);
+        await sendToTelegram(message);
+    });
+
+    // Optional: tekan Enter di input search langsung cek
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkBtn.click();
+    });
+
+    // Pesan awal
+    setStatus('✅ Siap. Masukkan nama lalu klik tombol hijau.');
+</script>
 </body>
 </html>
