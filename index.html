@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot Cek Kebocoran Data</title>
+    <title>Bot Cek Kebocoran Data - POST Method</title>
     <style>
         * {
             margin: 0;
@@ -54,6 +54,15 @@
             margin-bottom: 1.2rem;
             text-align: center;
         }
+        .info {
+            background: #1e3a5f80;
+            border-left: 4px solid #3b82f6;
+            padding: 0.7rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            color: #bfdbfe;
+            margin-bottom: 1.2rem;
+        }
         .input-group {
             margin-bottom: 1rem;
         }
@@ -64,7 +73,7 @@
             font-weight: 500;
             margin-bottom: 0.3rem;
         }
-        input, textarea {
+        input, select {
             width: 100%;
             padding: 0.7rem 1rem;
             background: #0f172a;
@@ -75,7 +84,7 @@
             outline: none;
             transition: 0.2s;
         }
-        input:focus, textarea:focus {
+        input:focus, select:focus {
             border-color: #8b5cf6;
             box-shadow: 0 0 0 2px #8b5cf633;
         }
@@ -144,15 +153,17 @@
 </head>
 <body>
 <div class="container">
-    <h1>🔍 Leak Checker Bot</h1>
-    <div class="sub">Cek data bocor → Kirim hasil ke Telegram</div>
+    <h1>🔍 Leak Checker Bot (POST)</h1>
+    <div class="sub">Metode POST sesuai API | Cek data → Kirim ke Telegram</div>
 
     <div class="warning">
-        ⚠️ TOKEN & API KEY TEREKSPOSE DI HALAMAN INI.<br>
-        Jangan bagikan file ini ke siapa pun. Segera revoke token di @BotFather setelah selesai.
+        ⚠️ TOKEN & API KEY TEREKSPOSE. Jangan bagikan file ini.
+    </div>
+    <div class="info">
+        💡 API ini menggunakan metode <strong>POST</strong>. Data dikirim dalam format <strong>JSON</strong> ke endpoint yang sama.
     </div>
 
-    <!-- Konfigurasi (sudah diisi dengan data Anda) -->
+    <!-- Konfigurasi -->
     <div class="input-group">
         <label>🤖 Bot Token Telegram</label>
         <input type="text" id="botToken" value="7529338395:AAEqq_w4gc065JYKGwJw_aCkE086YAG2Rts" readonly>
@@ -170,18 +181,17 @@
         <input type="text" id="searchInput" placeholder="Contoh: arya sinulingga" value="arya sinulingga">
     </div>
 
-    <button id="checkBtn" class="btn-primary">✅ 1. CEK DATA LANGSUNG</button>
+    <button id="checkBtn" class="btn-primary">✅ 1. CEK DATA (POST)</button>
     <button id="sendToTelegramBtn" class="btn-secondary">📤 2. KIRIM HASIL KE TELEGRAM</button>
 
     <div id="resultArea" style="display: none;" class="result-box">
-        <div class="result-title">📋 HASIL DARI API</div>
+        <div class="result-title">📋 RESPON API (POST)</div>
         <pre id="responsePre">-</pre>
     </div>
     <div id="statusMsg" class="status"></div>
 </div>
 
 <script>
-    // Ambil elemen
     const botToken = document.getElementById('botToken');
     const chatId = document.getElementById('chatId');
     const apiKey = document.getElementById('apiKey');
@@ -195,46 +205,58 @@
     let lastResult = null;
     let lastSearch = '';
 
-    // Fungsi tampilkan pesan status
     function setStatus(msg, isError = false) {
         statusMsg.innerHTML = msg;
         statusMsg.style.color = isError ? '#f87171' : '#94a3b8';
         setTimeout(() => {
             if (statusMsg.innerHTML === msg) statusMsg.innerHTML = '';
-        }, 4000);
+        }, 5000);
     }
 
-    // Fungsi panggil API cek kebocoran
-    async function checkLeaks(searchTerm) {
+    // Fungsi panggil API dengan method POST
+    async function checkLeaksPOST(searchTerm) {
         if (!searchTerm.trim()) {
             setStatus('❌ Masukkan nama yang ingin dicari!', true);
             return null;
         }
-        const url = `https://rfpdev.me/api/check-leaks?api_key=${apiKey.value.trim()}&search=${encodeURIComponent(searchTerm)}`;
-        setStatus('🔄 Sedang mengecek data...');
+
+        const url = 'https://rfpdev.me/api/check-leaks'; // endpoint tetap sama
+        const bodyData = {
+            api_key: apiKey.value.trim(),
+            search: searchTerm
+        };
+
+        setStatus('🔄 Mengirim request POST...');
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bodyData)
+            });
+
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP ${response.status} - ${response.statusText}`);
             }
+
             const data = await response.json();
             lastResult = data;
             lastSearch = searchTerm;
-            // Tampilkan hasil
             responsePre.textContent = JSON.stringify(data, null, 2);
             resultArea.style.display = 'block';
-            setStatus('✅ Pengecekan selesai!');
+            setStatus('✅ Pengecekan POST berhasil!');
             return data;
         } catch (error) {
-            console.error(error);
-            responsePre.textContent = `Error: ${error.message}\n\nKemungkinan API tidak mendukung CORS atau server sedang sibuk.`;
+            console.error('Error:', error);
+            responsePre.textContent = `Error: ${error.message}\n\nJika error CORS, gunakan proxy atau minta admin API menambahkan header CORS.`;
             resultArea.style.display = 'block';
             setStatus(`❌ Gagal: ${error.message}`, true);
             return null;
         }
     }
 
-    // Fungsi kirim pesan ke Telegram
+    // Kirim ke Telegram
     async function sendToTelegram(messageText) {
         const token = botToken.value.trim();
         const chat = chatId.value.trim();
@@ -267,12 +289,11 @@
         }
     }
 
-    // Format hasil untuk dikirim ke Telegram
     function formatForTelegram(searchTerm, data) {
         const timestamp = new Date().toLocaleString('id-ID');
         let body = JSON.stringify(data, null, 2);
         if (body.length > 3800) body = body.substring(0, 3700) + '\n... (dipotong)';
-        return `<b>🔍 HASIL CEK KEBOCORAN</b>\n📌 Pencarian: <code>${escapeHtml(searchTerm)}</code>\n⏰ Waktu: ${timestamp}\n━━━━━━━━━━━━━━━━\n<pre>${escapeHtml(body)}</pre>`;
+        return `<b>🔍 HASIL CEK KEBOCORAN (POST)</b>\n📌 Pencarian: <code>${escapeHtml(searchTerm)}</code>\n⏰ Waktu: ${timestamp}\n━━━━━━━━━━━━━━━━\n<pre>${escapeHtml(body)}</pre>`;
     }
 
     function escapeHtml(str) {
@@ -280,20 +301,18 @@
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    // Event: Tombol Cek
     checkBtn.addEventListener('click', async () => {
         const keyword = searchInput.value.trim();
         if (!keyword) {
             setStatus('Isi nama/kata kunci dulu!', true);
             return;
         }
-        await checkLeaks(keyword);
+        await checkLeaksPOST(keyword);
     });
 
-    // Event: Kirim hasil terakhir ke Telegram
     sendBtn.addEventListener('click', async () => {
         if (!lastResult) {
-            setStatus('Belum ada hasil pengecekan. Klik "CEK DATA LANGSUNG" dulu!', true);
+            setStatus('Belum ada hasil pengecekan. Klik "CEK DATA (POST)" dulu!', true);
             return;
         }
         const keyword = searchInput.value.trim() || lastSearch;
@@ -301,13 +320,11 @@
         await sendToTelegram(message);
     });
 
-    // Optional: tekan Enter di input search langsung cek
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') checkBtn.click();
     });
 
-    // Pesan awal
-    setStatus('✅ Siap. Masukkan nama lalu klik tombol hijau.');
+    setStatus('✅ Mode POST siap. Coba klik tombol hijau.');
 </script>
 </body>
 </html>
