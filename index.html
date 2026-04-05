@@ -2,64 +2,107 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Telegram Bot - Pengecek Data</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyra Data Leak Checker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: system-ui; max-width: 600px; margin: 2rem auto; padding: 0 1rem; background: #0f172a; color: #e2e8f0; }
-        .card { background: #1e293b; padding: 1.5rem; border-radius: 1rem; }
-        input, button { width: 100%; padding: 0.7rem; margin: 0.5rem 0; border-radius: 0.5rem; border: none; font-size: 1rem; }
-        input { background: #0f172a; color: white; }
-        button { background: #3b82f6; color: white; cursor: pointer; font-weight: bold; }
-        button:hover { background: #2563eb; }
-        .result { background: #0f172a; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; white-space: pre-wrap; font-family: monospace; }
-        .warning { background: #7f1d1d; padding: 0.7rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.8rem; text-align: center; }
+        body { background-color: #0f172a; color: #f8fafc; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
     </style>
 </head>
-<body>
-<div class="card">
-    <h2>📨 Kirim Perintah ke Bot Telegram</h2>
-    <div class="warning">
-        ⚠️ Token Bot dan Chat ID Anda tersimpan di halaman ini. Jangan bagikan file ini ke siapa pun.
-    </div>
-    <input type="text" id="botToken" value="7529338395:AAEqq_w4gc065JYKGwJw_aCkE086YAG2Rts" readonly>
-    <input type="text" id="chatId" value="7615971800" placeholder="Chat ID Telegram Anda">
-    <input type="text" id="command" placeholder="Contoh: /nama arya sinulingga" value="/nama ">
-    <button onclick="sendCommand()">Kirim Perintah ke Bot</button>
-    <div class="result" id="resultArea">💬 Hasil dari bot akan muncul di sini...</div>
-</div>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-<script>
-    async function sendCommand() {
-        const token = document.getElementById('botToken').value;
-        const chatId = document.getElementById('chatId').value;
-        const command = document.getElementById('command').value;
-        const resultDiv = document.getElementById('resultArea');
+    <div class="max-w-2xl w-full glass rounded-2xl p-8 shadow-2xl">
+        <h1 class="text-3xl font-bold mb-2 text-blue-400">Lyra Leak Checker</h1>
+        <p class="text-gray-400 mb-6">Masukkan data untuk memeriksa kebocoran dan mengirim laporan ke Telegram.</p>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Query Pencarian (Nama/Email/No HP)</label>
+                <input type="text" id="searchInput" placeholder="Contoh: Arya Sinulingga" 
+                       class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+
+            <button onclick="processCheck()" id="btnAction"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition transform active:scale-95 shadow-lg">
+                Periksa & Kirim ke Telegram
+            </button>
+        </div>
+
+        <div id="status" class="mt-6 hidden p-4 rounded-lg text-sm"></div>
         
-        if (!chatId || !command) {
-            resultDiv.innerHTML = "⚠️ Chat ID dan perintah harus diisi!";
-            return;
-        }
-        
-        resultDiv.innerHTML = "⏳ Mengirim perintah...";
-        
-        try {
-            // Kirim perintah sebagai pesan biasa ke bot
-            const sendUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-            const response = await fetch(sendUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: command, parse_mode: 'Markdown' })
-            });
-            const data = await response.json();
-            
-            if (data.ok) {
-                resultDiv.innerHTML = "✅ Perintah terkirim! Cek chat bot Telegram Anda untuk hasilnya.";
-            } else {
-                resultDiv.innerHTML = `❌ Gagal: ${data.description}`;
+        <div id="resultArea" class="mt-4 hidden">
+            <h2 class="text-lg font-semibold mb-2">Hasil Preview:</h2>
+            <div id="jsonPreview" class="bg-black p-4 rounded-lg text-xs overflow-auto max-h-64 text-green-400 font-mono"></div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            API_KEY: 'c5f8ba57-3613-48b7-9b46-d6ef2ee21629',
+            TG_TOKEN: '7529338395:AAEqq_w4gc065JYKGwJw_aCkE086YAG2Rts',
+            TG_CHAT_ID: '7615971800'
+        };
+
+        async function processCheck() {
+            const query = document.getElementById('searchInput').value;
+            const statusDiv = document.getElementById('status');
+            const resultArea = document.getElementById('resultArea');
+            const jsonPreview = document.getElementById('jsonPreview');
+            const btn = document.getElementById('btnAction');
+
+            if (!query) return alert("Harap masukkan kata kunci!");
+
+            // Reset UI
+            statusDiv.className = "mt-6 p-4 rounded-lg text-sm bg-blue-900/50 text-blue-200 block";
+            statusDiv.innerText = "🔍 Sedang memeriksa API...";
+            btn.disabled = true;
+            btn.innerText = "Memproses...";
+
+            try {
+                // 1. Fetch Data dari RFPDEV API
+                const apiUrl = `https://rfpdev.me/api/check-leaks?api_key=${CONFIG.API_KEY}&search=${encodeURIComponent(query)}`;
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                // Tampilkan di UI
+                resultArea.classList.remove('hidden');
+                jsonPreview.innerText = JSON.stringify(data, null, 2);
+
+                // 2. Format Pesan untuk Telegram
+                const message = `🚨 *HASIL CEK KEBOCORAN DATA* 🚨\n\n` +
+                                `🔎 *Query:* ${query}\n` +
+                                `📊 *Status:* ${data.status || 'Selesai'}\n` +
+                                `📂 *Data ditemukan:* ${Array.isArray(data.result) ? data.result.length : 'Lihat Detail'}\n\n` +
+                                `_Data dikirim melalui Lyra Dashboard._`;
+
+                // 3. Kirim ke Telegram
+                const tgUrl = `https://api.telegram.org/bot${CONFIG.TG_TOKEN}/sendMessage`;
+                const tgRes = await fetch(tgUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CONFIG.TG_CHAT_ID,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    })
+                });
+
+                if (tgRes.ok) {
+                    statusDiv.className = "mt-6 p-4 rounded-lg text-sm bg-green-900/50 text-green-200 block";
+                    statusDiv.innerText = "✅ Berhasil! Data telah dikirim ke Telegram Anda.";
+                } else {
+                    throw new Error("Gagal mengirim ke Telegram.");
+                }
+
+            } catch (error) {
+                statusDiv.className = "mt-6 p-4 rounded-lg text-sm bg-red-900/50 text-red-200 block";
+                statusDiv.innerText = "❌ Error: " + error.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Periksa & Kirim ke Telegram";
             }
-        } catch (error) {
-            resultDiv.innerHTML = `❌ Error: ${error.message}`;
         }
-    }
-</script>
+    </script>
 </body>
 </html>
